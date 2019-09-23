@@ -10,15 +10,28 @@ class Renderer {
   async createPage(url, options = {}) {
     const { timeout, waitUntil } = options
     const page = await this.browser.newPage()
-    const authHeader = Buffer.from(`${process.env.PROXY_KEY}`).toString('base64')
+    const authHeader = Buffer.from(
+      `${process.env.PROXY_AUTH_USERNAME}:${process.env.PROXY_AUTH_PASSWORD}`,
+    ).toString('base64')
 
-    await page.setExtraHTTPHeaders({
-      Authorization: 'Basic ' + authHeader,
+    await page.authenticate({
+      username: process.env.PROXY_AUTH_USERNAME,
+      password: process.env.PROXY_AUTH_PASSWORD,
     })
 
+    // await page.setRequestInterception(true)
+
+    // page.on('request', function(req) {
+    //   if ( ['stylesheet', 'font', 'image'].includes(req.resourceType()) ) {
+    //     req.abort()
+    //   }
+
+    //   req.continue()
+    // })
+
     await page.goto(url, {
-      timeout: Number(timeout) || 30 * 1000,
-      waitUntil: waitUntil || 'networkidle2',
+      timeout: Number(timeout) || Number(process.env.DEFAULT_TIMEOUT),
+      waitUntil: waitUntil || process.env.DEFAULT_WAIT_UNTIL,
     })
 
     return page
@@ -28,8 +41,9 @@ class Renderer {
     let page = null
     try {
       const { timeout, waitUntil } = options
-      page = await this.createPage(url, { timeout, waitUntil })
+      const page = await this.createPage(url, { timeout, waitUntil })
       const html = await page.content()
+
       return html
     } finally {
       if (page) {
@@ -93,7 +107,7 @@ class Renderer {
 
 async function create() {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     ignoreHTTPSErrors: true,
     defaultViewport: {
       width: Number(1921),

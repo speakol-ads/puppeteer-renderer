@@ -7,7 +7,7 @@ const { URL } = require('url')
 const contentDisposition = require('content-disposition')
 const createRenderer = require('./renderer')
 
-const port = process.env.PORT || 3000
+const port = process.env.LISTEN_PORT || 3000
 
 const app = express()
 
@@ -71,7 +71,7 @@ app.use(async (req, res, next) => {
 // Error page.
 app.use((err, req, res, next) => {
   console.error(err)
-  res.status(500).send('Oops, An expected error seems to have occurred.')
+  res.status(500).send('Oops, An expected error seems to have occurred.<br />' + err.message)
 })
 
 // Create renderer and start server.
