@@ -10,10 +10,17 @@ class Renderer {
   async createPage(url, options = {}) {
     const { timeout, waitUntil } = options
     const page = await this.browser.newPage()
+    const authHeader = Buffer.from(`${process.env.PROXY_KEY}`).toString('base64')
+
+    await page.setExtraHTTPHeaders({
+      Authorization: 'Basic ' + authHeader,
+    })
+
     await page.goto(url, {
       timeout: Number(timeout) || 30 * 1000,
       waitUntil: waitUntil || 'networkidle2',
     })
+
     return page
   }
 
@@ -85,7 +92,15 @@ class Renderer {
 }
 
 async function create() {
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] })
+  const browser = await puppeteer.launch({
+    headless: true,
+    ignoreHTTPSErrors: true,
+    defaultViewport: {
+      width: Number(1921),
+      height: Number(1080),
+    },
+    args: ['--no-sandbox', `--proxy-server=${process.env.PROXY_URL}`],
+  })
   return new Renderer(browser)
 }
 
