@@ -6,18 +6,30 @@ const express = require('express')
 const { URL } = require('url')
 const contentDisposition = require('content-disposition')
 const createRenderer = require('./renderer')
-
 const port = process.env.LISTEN_PORT || 3000
-
 const app = express()
+const maxRequests = Number(process.env.MAX_REQUESTS)
 
 let renderer = null
+let requests = 0
+let restarts = 0
 
 // Configure.
 app.disable('x-powered-by')
 
 // Render url.
 app.use(async (req, res, next) => {
+  console.log(`> serving ${req.url} ...`)
+  if (maxRequests > 0 && requests >= maxRequests) {
+    console.log('restarting ...')
+    renderer = await renderer.restart()
+    requests = 0
+    restarts++
+    console.log(`restarted(${restarts}) ...`)
+  }
+
+  requests++
+
   let { url, type, ...options } = req.query
 
   if (!url) {

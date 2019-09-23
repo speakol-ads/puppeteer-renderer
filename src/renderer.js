@@ -5,29 +5,23 @@ const puppeteer = require('puppeteer')
 class Renderer {
   constructor(browser) {
     this.browser = browser
+    this.restarting = false
   }
 
   async createPage(url, options = {}) {
+    while (this.restarting) {
+      await (function(milliseconds) {
+        return new Promise(resolve => setTimeout(resolve, milliseconds))
+      })(1000)
+    }
+
     const { timeout, waitUntil } = options
     const page = await this.browser.newPage()
-    const authHeader = Buffer.from(
-      `${process.env.PROXY_AUTH_USERNAME}:${process.env.PROXY_AUTH_PASSWORD}`,
-    ).toString('base64')
 
     await page.authenticate({
       username: process.env.PROXY_AUTH_USERNAME,
       password: process.env.PROXY_AUTH_PASSWORD,
     })
-
-    // await page.setRequestInterception(true)
-
-    // page.on('request', function(req) {
-    //   if ( ['stylesheet', 'font', 'image'].includes(req.resourceType()) ) {
-    //     req.abort()
-    //   }
-
-    //   req.continue()
-    // })
 
     await page.goto(url, {
       timeout: Number(timeout) || Number(process.env.DEFAULT_TIMEOUT),
@@ -103,11 +97,17 @@ class Renderer {
   async close() {
     await this.browser.close()
   }
+
+  async restart() {
+    this.restarting = true
+    await this.close()
+    return create()
+  }
 }
 
 async function create() {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     ignoreHTTPSErrors: true,
     defaultViewport: {
       width: Number(1921),
